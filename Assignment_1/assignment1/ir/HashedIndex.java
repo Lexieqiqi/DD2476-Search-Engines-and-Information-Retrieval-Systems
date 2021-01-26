@@ -29,6 +29,14 @@ public class HashedIndex implements Index {
         //
         // YOUR CODE HERE
         //
+
+        // if the term is in the index
+        if (getPostings(token)!=null) {
+          index.get(token).addToPostingsList(docID, offset);
+        }
+        else {
+          index.put(token, new PostingsList(docID, offset));
+        }
     }
 
 
@@ -37,10 +45,8 @@ public class HashedIndex implements Index {
      *  if the term is not in the index.
      */
     public PostingsList getPostings( String token ) {
-        //
-        // REPLACE THE STATEMENT BELOW WITH YOUR CODE
-        //
-        return null;
+        if(index.containsKey(token)) return index.get(token);
+        else return null;
     }
 
 

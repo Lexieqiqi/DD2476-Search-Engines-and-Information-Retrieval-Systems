@@ -76,6 +76,7 @@ public class Indexer {
                             String token = tok.nextToken();
                             insertIntoIndex( docID, token, offset++ );
                         }
+                        System.out.println(docID);
                         index.docNames.put( docID, f.getPath() );
                         index.docLengths.put( docID, offset );
                         reader.close();

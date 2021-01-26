@@ -8,7 +8,45 @@
 // As you have probably already understood, lines beginning
 // with "//" are comments.
 
+
+// URI 
+https?://(www.)?([a-zA-Z0-9%=&!:_.#,?+@-]+/?)+
+https?://host(:\d+)*(/?[a-zA-Z]*[?#]*[a-zA-Z]*)*/?
+
+
 // Twenty-four seven
 \d+/\d+
 
 // ADD YOUR PATTERNS HERE
+
+// File type
+([a-zA-Z0-9_\\.-:])+(.doc|.docx|.pdf|.xlsx|.ppt)
+
+// Apostrophes
+[a-zA-Z]*('s|'t|'d|'ll|'em|'ve|'re|'m)
+
+// Email 
+[a-zA-Z0-9_.-]+@[a-zA-Z0-9]+(.[a-zA-Z0-9]+)+
+
+// Abbreviations
+[a-zA-Z]\.[a-zA-Z]\.
+
+// Hyphens
+[a-zA-Z]+-[a-zA-Z]+
+
+// Time
+\d\d:\d\d:\d\d
+
+// Region 
+\d+-xxxx
+
+
+
+// Number 
+(\d+[a-zA-Z]+)|([a-zA-Z]+\d+)|(\$*[+]*\d+(,\d{3})*(.\d+)*)
+
+// Phone Number
+[+]*\d?(-|\s)*\d+(-|\s)*\d+(-|\s)*\d+
+
+
+
