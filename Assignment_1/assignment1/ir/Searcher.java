@@ -105,10 +105,10 @@ public class Searcher {
     public PostingsList phraseQuery(ArrayList<String> terms, HashMap<String, PostingsList> termsPostingsList) {
       PostingsList result = termsPostingsList.get(terms.get(0));
       terms.remove(0);
-      do{
+      while (!terms.isEmpty() && result!=null) {
         result = phrase(result, termsPostingsList.get(terms.get(0)));
         terms.remove(0);
-      } while (!terms.isEmpty() && result!=null);
+      }
       return result;
     }
 
@@ -117,10 +117,10 @@ public class Searcher {
       terms = sortTerms(terms, termsPostingsList);
       PostingsList result = termsPostingsList.get(terms.get(0));
       terms.remove(0);
-      do{
+      while (!terms.isEmpty() && result!=null){
         result = intersect(result, termsPostingsList.get(terms.get(0)));
         terms.remove(0);
-      } while (!terms.isEmpty() && result!=null);
+      }
       return result;
     }
 

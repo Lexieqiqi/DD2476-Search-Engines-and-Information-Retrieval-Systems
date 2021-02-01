@@ -26,10 +26,6 @@ public class HashedIndex implements Index {
      *  Inserts this token in the hashtable.
      */
     public void insert( String token, int docID, int offset ) {
-        //
-        // YOUR CODE HERE
-        //
-
         // if the term is in the index
         if (getPostings(token)!=null) {
           index.get(token).addToPostingsList(docID, offset);
@@ -49,6 +45,11 @@ public class HashedIndex implements Index {
         else return null;
     }
 
+    public String getString(String token) {
+      String iString = "";
+      iString = token + ":" + getPostings(token).getString(token) + ".";
+      return iString;
+    }
 
     /**
      *  No need for cleanup in a HashedIndex.

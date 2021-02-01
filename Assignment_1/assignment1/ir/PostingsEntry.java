@@ -18,7 +18,6 @@ public class PostingsEntry implements Comparable<PostingsEntry>, Serializable {
     public int docID;
     public double score = 0;
     public ArrayList<Integer> offsets;
-    public HashMap<Integer, Integer> phaseOffsets;
 
     public PostingsEntry(int docID) {
       this.docID = docID;
@@ -48,10 +47,16 @@ public class PostingsEntry implements Comparable<PostingsEntry>, Serializable {
        return Double.compare( other.score, score );
     }
 
-    //
-    // YOUR CODE HERE
-    //
-
-
+    public String getString () {
+      String pEntry = "";
+      for (int i = 0; i < this.offsets.size(); i++) {
+        if (i!=this.offsets.size()-1){
+          pEntry = pEntry + this.offsets.get(i) + ",";
+        } else {
+          pEntry = pEntry + this.offsets.get(i) + ";";
+        }
+      }
+      return this.docID + ":" + pEntry;
+    }
 }
 

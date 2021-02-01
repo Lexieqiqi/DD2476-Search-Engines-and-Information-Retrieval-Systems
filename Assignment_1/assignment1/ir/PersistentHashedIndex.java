@@ -8,6 +8,7 @@
 package ir;
 
 import java.io.*;
+import java.lang.reflect.GenericArrayType;
 import java.util.*;
 import java.nio.charset.*;
 
@@ -31,7 +32,7 @@ public class PersistentHashedIndex implements Index {
     /** The dictionary file name */
     public static final String DICTIONARY_FNAME = "dictionary";
 
-    /** The dictionary file name */
+    /** The data file name */
     public static final String DATA_FNAME = "data";
 
     /** The terms file name */
@@ -62,9 +63,29 @@ public class PersistentHashedIndex implements Index {
      *   A helper class representing one entry in the dictionary hashtable.
      */ 
     public class Entry {
-        //
-        //  YOUR CODE HERE
-        //
+
+      public int hashCode;
+      public long ptr;
+      public int length;
+
+      public Entry(int hashCode, long ptr, int length) {
+        this.hashCode = hashCode;
+        this.ptr = ptr;
+        this.length = length;
+      }
+
+      public int getHashCode() {
+          return this.hashCode;
+      }
+
+      public long getPtr() {
+        return this.ptr;
+      }
+
+      public int getLength() {
+        return this.length;
+      }
+
     }
 
 
@@ -136,9 +157,14 @@ public class PersistentHashedIndex implements Index {
      *  @param ptr   The place in the dictionary file to store the entry
      */
     void writeEntry( Entry entry, long ptr ) {
-        //
-        //  YOUR CODE HERE
-        //
+      try {
+        dictionaryFile.seek(ptr);
+        dictionaryFile.writeInt(entry.getHashCode());
+        dictionaryFile.writeLong( entry.getPtr() );
+        dictionaryFile.writeInt( entry.getLength() );
+      } catch ( IOException e ) {
+        e.printStackTrace();
+      }
     }
 
     /**
@@ -146,11 +172,26 @@ public class PersistentHashedIndex implements Index {
      *
      *  @param ptr The place in the dictionary file where to start reading.
      */
-    Entry readEntry( long ptr ) {   
-        //
-        //  REPLACE THE STATEMENT BELOW WITH YOUR CODE 
-        //
-        return null;
+    Entry readEntry( long ptr) {   
+      try {
+        if (dictionaryFile.length()>ptr) {
+            dictionaryFile.seek( ptr );
+            int hashCode = dictionaryFile.readInt();
+            long dataPtr = dictionaryFile.readLong();
+            int dataLen = dictionaryFile.readInt();
+            // if the entry is written
+            if (dataLen!=0) return new Entry(hashCode, dataPtr,dataLen);
+            // if the entry is empty
+            return null;
+        }
+        else {
+          return null;
+        }
+      } catch ( IOException e ) {
+          System.out.println(ptr);
+          e.printStackTrace();
+          return null;
+      }
     }
 
 
@@ -192,6 +233,10 @@ public class PersistentHashedIndex implements Index {
         freader.close();
     }
 
+    public int getHashCode(String token) {
+      return Math.abs(token.hashCode());
+    }
+
 
     /**
      *  Write the index to files.
@@ -202,11 +247,30 @@ public class PersistentHashedIndex implements Index {
             // Write the 'docNames' and 'docLengths' hash maps to a file
             writeDocInfo();
 
+            long dataFilePtr = free;
+            long entryFilePtr = 0L;
             // Write the dictionary and the postings list
+            Iterator<String> it = index.keySet().iterator();
+            while(it.hasNext()){
+              String term = it.next().toString();
+              int hashCode =  getHashCode(term);
+              entryFilePtr =  (hashCode%TABLESIZE)*16;
+              Entry entry = readEntry(entryFilePtr);
+              while (entry!=null) {
+                if ( entry.hashCode != hashCode ) {
+                    collisions++;
+                    entryFilePtr += 16;  
+                    entry = readEntry(entryFilePtr);
+                }
+                else break;
+              } 
 
-            // 
-            //  YOUR CODE HERE
-            //
+              int datalen = writeData(index.get(term).getString(term), dataFilePtr);
+              
+              writeEntry(new Entry(hashCode, dataFilePtr, datalen), entryFilePtr);
+              dataFilePtr = dataFilePtr + datalen;
+
+            }
         } catch ( IOException e ) {
             e.printStackTrace();
         }
@@ -222,10 +286,23 @@ public class PersistentHashedIndex implements Index {
      *  if the term is not in the index.
      */
     public PostingsList getPostings( String token ) {
-        //
-        //  REPLACE THE STATEMENT BELOW WITH YOUR CODE
-        //
-        return null;
+        int hashCode =  getHashCode(token);
+        long entryFilePtr =  (hashCode%TABLESIZE)*16;
+        Entry entry = readEntry(entryFilePtr);
+        while (entry!=null) {
+          if ( entry.hashCode != hashCode ) {
+              entryFilePtr += 16;  
+              entry = readEntry(entryFilePtr);
+          }
+          else break;
+        }
+        if (entry == null) return null;
+        else {
+          String data = readData( entry.getPtr(), entry.getLength() );
+          String pl = data.split("@@##")[1];
+          return PostingsList.stringToPL(pl); 
+        }
+
     }
 
 
@@ -233,9 +310,12 @@ public class PersistentHashedIndex implements Index {
      *  Inserts this token in the main-memory hashtable.
      */
     public void insert( String token, int docID, int offset ) {
-        //
-        //  YOUR CODE HERE
-        //
+      if (index.containsKey(token)) {
+        index.get(token).addToPostingsList(docID, offset);
+      }
+      else {
+        index.put(token, new PostingsList(docID, offset));
+      }
     }
 
 

@@ -57,6 +57,26 @@ public class PostingsList {
       return list.get(listDoc.get(docID));
     }
 
+    public String getString(String token) {
+      String pString = "";
+      for (int i=0; i<list.size(); i++) {
+        pString = pString + list.get(i).getString();
+      }
+      return token + "@@##" + pString + "\n";
+    }
+
+    public static PostingsList stringToPL(String pl) {
+        String[] et = pl.split(";");
+        PostingsList p = new PostingsList();
+        for (int i=0; i<et.length-1; i++) {
+            int doc = Integer.parseInt(et[i].split(":")[0]);
+            String[] stringOffsets = et[i].split(":")[1].split(",");
+            for (int j=0; j<stringOffsets.length; j++) {
+                p.addToPostingsList(doc, Integer.parseInt(stringOffsets[j]));
+            }
+        }
+        return p;
+    }
     /** Add  */
 }
 
