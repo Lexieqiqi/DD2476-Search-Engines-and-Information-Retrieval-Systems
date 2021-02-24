@@ -61,9 +61,11 @@ public class PageRank {
     /* --------------------------------------------- */
 
 
-    public PageRank( String filename ) {
-	int noOfDocs = readDocs( filename );
-	iterate( noOfDocs, 1000 );
+
+    public PageRank( String filename, String method ) {
+    int noOfDocs = readDocs( filename );
+    computePageRank(noOfDocs, method);
+    //computeDiffPR(noOfDocs);
     }
 
 
@@ -152,6 +154,98 @@ public class PageRank {
     /* --------------------------------------------- */
 
 
+    double[] monteCarlo(int numberOfDocs, int numWalks, int method) {
+        double[] x = new double[numberOfDocs];
+        Random random = new Random();
+        boolean isDangling = false;
+
+        if (method == 1) {
+            // random start
+            for (int i=0; i < numWalks; i++) {
+                int initPage = random.nextInt(numberOfDocs);
+                LinkedList<Integer> list = randomWalk(numberOfDocs, initPage, isDangling);
+                x[list.removeLast().intValue()]++;
+            }
+            // Simmulate N runs of random walk
+            for (int i=0; i<numberOfDocs; i++) {
+                x[i] = x[i] / (double)numWalks;
+            }
+        } else if (method==2) {
+            // cyclic start
+            int initMtimes = numberOfDocs;
+            for (int i=0; i<initMtimes; i++) {
+                for (int j=0; j<100; j++) {
+                    LinkedList<Integer> list = randomWalk(numberOfDocs, i, isDangling);
+                    x[list.removeLast().intValue()]++;
+                }
+            }
+            // Simulate N=mn runs of the random walk
+            double N = (double) (numWalks*initMtimes);
+            for (int i=0; i<numberOfDocs; i++) {
+                x[i] = x[i] / N;
+            }
+        } else if (method == 4) {
+            // complete path 
+            isDangling = true;
+            int initMtimes = numberOfDocs;
+            int total_visits = 0;
+            // #visits to node j during walk
+            for (int i=0; i<initMtimes; i++) {
+                for (int j=0; j<100; j++) {
+                    LinkedList<Integer> list = randomWalk(numberOfDocs, i, isDangling);
+                    total_visits += list.size();
+                    while (list.size() != 0) {
+                        x[list.removeLast().intValue()]++;
+                    }
+                }
+            }
+            for (int i=0; i<numberOfDocs; i++) {
+                x[i] = x[i] / (double)total_visits;
+            }
+        } else if (method == 5) {
+            isDangling = true;
+            int total_visits = 0;
+            for (int i=0; i<numWalks; i++) {
+                int initPage = random.nextInt(numberOfDocs);
+                LinkedList<Integer> list = randomWalk(numberOfDocs, initPage, isDangling);
+                total_visits += list.size();
+                while (list.size() != 0) {
+                    x[list.removeLast().intValue()]++;
+                }
+            }
+            for (int i=0; i<numberOfDocs; i++) {
+                x[i] = x[i] / (double)total_visits;
+            }
+        }
+
+        return x;
+    }
+
+    LinkedList<Integer> randomWalk(int numberOfDocs, int initPage, boolean isDangling) {
+        LinkedList<Integer> list = new LinkedList<Integer>();
+        Random random = new Random();
+        int page = initPage;
+        list.add(page);
+
+        while (true) {
+            // if bored, start a new walk
+            if(random.nextDouble() < BORED) {
+                break;
+            }
+            else {
+                HashMap<Integer, Boolean> walk = link.get(page);
+                if (walk == null) {
+                    if (isDangling) break;
+                } else {
+                    ArrayList<Integer> walks = new ArrayList<Integer>(walk.keySet());
+                    page = walks.get(random.nextInt(walks.size())).intValue();
+                }
+                list.add(page);
+            }
+        }
+        return list;
+    }
+
     double diff(double[] x1, double[] x2) {
         double difference = 0.0;
         for (int i=0; i<x1.length; i++) {
@@ -164,7 +258,7 @@ public class PageRank {
      *   Chooses a probability vector a, and repeatedly computes
      *   aP, aP^2, aP^3... until aP^i = aP^(i+1).
      */
-    void iterate( int numberOfDocs, int maxIterations ) {
+    double[] iterate( int numberOfDocs, int maxIterations ) {
         // convert link to outlinks
         for (int i=0; i< numberOfDocs; i++) {
             if (link.get(i)!=null) {
@@ -180,7 +274,6 @@ public class PageRank {
                     }
                 }
             } else {
-                outlinks.put(i, null);
                 nullLinks.add(i);
             }
         }
@@ -228,18 +321,74 @@ public class PageRank {
             System.out.println(diff(x, x_));
         } while (iteration<maxIterations && diff(x, x_) > EPSILON);
 
-        DocRank[] output = new DocRank[numberOfDocs];
-        for(int i=0;i<numberOfDocs;i++){
-            output[i] = new DocRank(i,x_[i]);
-        }
-
-        Arrays.sort(output);
-
-        for(int i=0;i<30;i++){ 
-            System.out.println(docName[output[i].docID]+": "+output[i].rank); 
-        }
+        return x_;
         
     }
+
+
+    void computeDiffPR(int numberOfDocs) {
+        double[] prs = computePageRank(numberOfDocs, "0");
+        System.out.println(0);
+        double[] aPrs1 = computePageRank(numberOfDocs, "1");
+        System.out.println(1);
+        double[] aPrs2 = computePageRank(numberOfDocs, "2");
+        System.out.println(2);
+        double[] aPrs4 = computePageRank(numberOfDocs, "4");
+        System.out.println(3);
+        double[] aPrs5 = computePageRank(numberOfDocs, "5");
+        System.out.println(4);
+        double[] differences = new double[4];
+        for (int i=0; i<30; i++) {
+            differences[0] += Math.pow(aPrs1[i]-prs[i],2);
+            differences[1] += Math.pow(aPrs2[i]-prs[i],2);
+            differences[2] += Math.pow(aPrs4[i]-prs[i],2);
+            differences[3] += Math.pow(aPrs5[i]-prs[i],2);
+        }
+        for (int i=0; i<4; i++) {
+            System.out.println(i + " : " + differences[i]);
+        }
+    }
+
+    double[] computePageRank(int numberOfDocs, String input) {
+        int method = Integer.parseInt(input);
+        double[] pr = new double[numberOfDocs];
+        // power iteration method
+        if (method == 0 || method == 6) {
+            pr = iterate( numberOfDocs, 1000 );
+        } else {
+            pr = monteCarlo(numberOfDocs, 100000, method);
+        }
+        if (method== 6) {
+            File file = new File("" + "./pagerank.score");
+    		if (!file.exists()) {
+    			try {
+    				file.createNewFile();
+    				FileWriter fw = new FileWriter(file, true);
+    				for (int i = 0; i < pr.length; i++) {
+    					fw.append(docName[i] + ":" + pr[i]);
+    					fw.append(System.lineSeparator());
+    				}
+    				fw.close();
+    			} catch (IOException e) {
+    				e.printStackTrace();
+    			}
+            }
+            return null;
+        } else {
+            DocRank[] output = new DocRank[numberOfDocs];
+            for(int i=0;i<numberOfDocs;i++){
+                output[i] = new DocRank(i,pr[i]);
+            }
+            Arrays.sort(output);
+            double[] ranks = new double[30];
+            for(int i=0;i<30;i++){ 
+                ranks[i] = output[i].rank;
+                System.out.println(docName[output[i].docID]+": "+output[i].rank); 
+            }
+            return ranks;
+        }
+    }
+
 
 
 
@@ -247,11 +396,13 @@ public class PageRank {
 
 
     public static void main( String[] args ) {
-	if ( args.length != 1 ) {
+	if ( args.length < 1 ) {
 	    System.err.println( "Please give the name of the link file" );
 	}
-	else {
-	    new PageRank( args[0] );
-	}
+	else if (args.length < 2) {
+        System.err.println( "Please give the rank method" );
+    } else {
+	    new PageRank( args[0], args[1] );
     }
+    }   
 }
